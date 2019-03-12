@@ -266,6 +266,14 @@ class OTCPreprocessing(object):
         episode is over.
       info: Gym API's info data structure.
     """
+    if action == 0:
+        action = 18
+    elif action == 1:
+        action = 6
+    elif action == 2:
+        action = 12
+    elif action == 3:
+        action = 20
 
     observation, reward, game_over, info = self.environment.step(action)
     self.game_over = game_over
