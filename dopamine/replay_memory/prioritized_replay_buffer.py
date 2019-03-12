@@ -90,7 +90,6 @@ class OutOfGraphPrioritizedReplayBuffer(
         action_dtype=action_dtype,
         reward_shape=reward_shape,
         reward_dtype=reward_dtype)
-
     self.sum_tree = sum_tree.SumTree(replay_capacity)
 
   def get_add_args_signature(self):
@@ -184,6 +183,7 @@ class OutOfGraphPrioritizedReplayBuffer(
       transition_batch: tuple of np.arrays with the shape and type as in
         get_transition_elements().
     """
+    # print('424242 IN SAMPLE TRANSITION BATCH')
     transition = (super(OutOfGraphPrioritizedReplayBuffer, self).
                   sample_transition_batch(batch_size, indices))
     transition_elements = self.get_transition_elements(batch_size)

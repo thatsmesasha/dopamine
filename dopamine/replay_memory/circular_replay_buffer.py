@@ -159,6 +159,7 @@ class OutOfGraphReplayBuffer(object):
     self._observation_shape = observation_shape
     self._stack_size = stack_size
     self._state_shape = self._observation_shape + (self._stack_size,)
+    self._agent_state_shape = self._observation_shape[:-1] + (self._stack_size,)
     self._replay_capacity = replay_capacity
     self._batch_size = batch_size
     self._update_horizon = update_horizon
@@ -210,6 +211,8 @@ class OutOfGraphReplayBuffer(object):
         ReplayElement('observation', self._observation_shape,
                       self._observation_dtype),
         ReplayElement('action', self._action_shape, self._action_dtype),
+        ReplayElement('is_random_action', (), np.uint8),
+        ReplayElement('q_values', (54,), np.float32),
         ReplayElement('reward', self._reward_shape, self._reward_dtype),
         ReplayElement('terminal', (), np.uint8)
     ]
@@ -227,7 +230,7 @@ class OutOfGraphReplayBuffer(object):
           np.zeros(element_type.shape, dtype=element_type.type))
     self._add(*zero_transition)
 
-  def add(self, observation, action, reward, terminal, *args):
+  def add(self, observation, action, is_random_action, q_values, reward, terminal, *args):
     """Adds a transition to the replay memory.
 
     This function checks the types and handles the padding at the beginning of
@@ -241,19 +244,22 @@ class OutOfGraphReplayBuffer(object):
     Args:
       observation: np.array with shape observation_shape.
       action: int, the action in the transition.
+      is_random_action: A uint8 acting as a boolean, if the action in
+        the transition was chosen randomly.
+      q_values: np.array of Q values.
       reward: float, the reward received in the transition.
       terminal: A uint8 acting as a boolean indicating whether the transition
                 was terminal (1) or not (0).
       *args: extra contents with shapes and dtypes according to
         extra_storage_types.
     """
-    self._check_add_types(observation, action, reward, terminal, *args)
+    self._check_add_types(observation, action, is_random_action, q_values, reward, terminal, *args)
     if self.is_empty() or self._store['terminal'][self.cursor() - 1] == 1:
       for _ in range(self._stack_size - 1):
         # Child classes can rely on the padding transitions being filled with
         # zeros. This is useful when there is a priority argument.
         self._add_zero_transition()
-    self._add(observation, action, reward, terminal, *args)
+    self._add(observation, action, is_random_action, q_values, reward, terminal, *args)
 
   def _add(self, *args):
     """Internal add method to add to the storage arrays.
@@ -479,6 +485,7 @@ class OutOfGraphReplayBuffer(object):
     Raises:
       ValueError: If an element to be sampled is missing from the replay buffer.
     """
+    # print('424242 IN SAMPLE TRANSITION')
     if batch_size is None:
       batch_size = self._batch_size
     if indices is None:
@@ -508,6 +515,8 @@ class OutOfGraphReplayBuffer(object):
       assert len(transition_elements) == len(batch_arrays)
       for element_array, element in zip(batch_arrays, transition_elements):
         if element.name == 'state':
+          # print('424242 state_index')
+          # print(state_index)
           element_array[batch_element] = self.get_observation_stack(state_index)
         elif element.name == 'reward':
           # compute the discounted sum of rewards in the trajectory.
@@ -734,8 +743,10 @@ class WrappedReplayBuffer(object):
 
     # Mainly used to allow subclasses to pass self.memory.
     if wrapped_memory is not None:
+      # print('424242 MEMORY EXISTS')
       self.memory = wrapped_memory
     else:
+      # print('424242 MEMORY DOESNT EXISTS')
       self.memory = OutOfGraphReplayBuffer(
           observation_shape,
           stack_size,
@@ -753,7 +764,7 @@ class WrappedReplayBuffer(object):
 
     self.create_sampling_ops(use_staging)
 
-  def add(self, observation, action, reward, terminal, *args):
+  def add(self, observation, action, is_random_action, q_values, reward, terminal, *args):
     """Adds a transition to the replay memory.
 
     Since the next_observation in the transition will be the observation added
@@ -770,7 +781,7 @@ class WrappedReplayBuffer(object):
       *args: extra contents with shapes and dtypes according to
         extra_storage_types.
     """
-    self.memory.add(observation, action, reward, terminal, *args)
+    self.memory.add(observation, action, is_random_action, q_values, reward, terminal, *args)
 
   def create_sampling_ops(self, use_staging):
     """Creates the ops necessary to sample from the replay buffer.
@@ -781,13 +792,18 @@ class WrappedReplayBuffer(object):
       use_staging: bool, when True it would use a staging area to prefetch
         the next sampling batch.
     """
+    # print('424242 IN CREATE SAMPLING OPS')
     with tf.name_scope('sample_replay'):
       with tf.device('/cpu:*'):
         transition_type = self.memory.get_transition_elements()
+        # print('424242 transition_type')
+        # print(transition_type,flush=True)
         transition_tensors = tf.py_func(
             self.memory.sample_transition_batch, [],
             [return_entry.type for return_entry in transition_type],
             name='replay_sample_py_func')
+        # print('424242 transition_tensors')
+        # print(transition_tensors)
         self._set_transition_shape(transition_tensors, transition_type)
         if use_staging:
           transition_tensors = self._set_up_staging(transition_tensors)
@@ -822,6 +838,12 @@ class WrappedReplayBuffer(object):
         memory.get_transition_elements() that have been previously prefetched.
     """
     transition_type = self.memory.get_transition_elements()
+    # print('424242 transition_type')
+    # print(transition_type)
+    # print('424242 transition')
+    # print(transition)
+
+
 
     # Create the staging area in CPU.
     prefetch_area = tf.contrib.staging.StagingArea(

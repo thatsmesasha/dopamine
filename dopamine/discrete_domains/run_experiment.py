@@ -142,9 +142,9 @@ class Runner(object):
                logging_file_prefix='log',
                log_every_n=1,
                num_iterations=200,
-               training_steps=250000,
-               evaluation_steps=125000,
-               max_steps_per_episode=27000):
+               training_steps=20000,
+               evaluation_steps=2000,
+               max_steps_per_episode=20000):
     """Initialize the Runner object in charge of running a full experiment.
 
     Args:
@@ -281,7 +281,11 @@ class Runner(object):
     is_terminal = False
 
     # Keep interacting until we reach a terminal state.
+    print('Starting episode...')
     while True:
+      sys.stdout.write('\rStep: {}'.format(step_number))
+      sys.stdout.flush()
+
       observation, reward, is_terminal = self._run_one_step(action)
 
       total_reward += reward
@@ -301,6 +305,7 @@ class Runner(object):
         action = self._agent.begin_episode(observation)
       else:
         action = self._agent.step(reward, observation)
+    print('\nEnded episode')
 
     self._end_episode(reward)
 
@@ -337,10 +342,9 @@ class Runner(object):
       num_episodes += 1
       # We use sys.stdout.write instead of tf.logging so as to flush frequently
       # without generating a line break.
-      sys.stdout.write('Steps executed: {} '.format(step_count) +
-                       'Episode length: {} '.format(episode_length) +
-                       'Return: {}\r'.format(episode_return))
-      sys.stdout.flush()
+      print('Steps executed: {} '.format(step_count) +
+            'Episode length: {} '.format(episode_length) +
+            'Return: {}'.format(episode_return))
     return step_count, sum_returns, num_episodes
 
   def _run_train_phase(self, statistics):
@@ -464,6 +468,9 @@ class Runner(object):
       experiment_data['current_iteration'] = iteration
       experiment_data['logs'] = self._logger.data
       self._checkpointer.save_checkpoint(iteration, experiment_data)
+
+  def display_checkpoint(self):
+      pass
 
   def run_experiment(self):
     """Runs a full experiment, spread over multiple iterations."""

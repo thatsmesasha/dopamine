@@ -66,13 +66,13 @@ class RainbowAgent(dqn_agent.DQNAgent):
                vmax=10.,
                gamma=0.99,
                update_horizon=1,
-               min_replay_history=20000,
+               min_replay_history=2000,
                update_period=4,
-               target_update_period=8000,
+               target_update_period=500,
                epsilon_fn=dqn_agent.linearly_decaying_epsilon,
                epsilon_train=0.01,
                epsilon_eval=0.001,
-               epsilon_decay_period=250000,
+               epsilon_decay_period=20000,
                replay_scheme='prioritized',
                tf_device='/cpu:*',
                use_staging=True,
@@ -130,6 +130,9 @@ class RainbowAgent(dqn_agent.DQNAgent):
     # TODO(b/110897128): Make agent optimizer attribute private.
     self.optimizer = optimizer
 
+    # print('424242 observation_shape')
+    # print(observation_shape)
+
     dqn_agent.DQNAgent.__init__(
         self,
         sess=sess,
@@ -171,6 +174,8 @@ class RainbowAgent(dqn_agent.DQNAgent):
     Returns:
       net: _network_type object containing the tensors output by the network.
     """
+    # print('424242 state')
+    # print(state)
     return self.network(self.num_actions, self._num_atoms, self._support,
                         self._get_network_type(), state)
 
@@ -305,6 +310,8 @@ class RainbowAgent(dqn_agent.DQNAgent):
   def _store_transition(self,
                         last_observation,
                         action,
+                        is_random_action,
+                        q_values,
                         reward,
                         is_terminal,
                         priority=None):
@@ -318,6 +325,8 @@ class RainbowAgent(dqn_agent.DQNAgent):
       last_observation: Last observation, type determined via observation_type
         parameter in the replay_memory constructor.
       action: An integer, the action taken.
+      is_random_action: Boolean indicating if the chosen action was randomised.
+      q_values: np.array of Q values.
       reward: A float, the reward.
       is_terminal: Boolean indicating if the current state is a terminal state.
       priority: Float. Priority of sampling the transition. If None, the default
@@ -332,7 +341,7 @@ class RainbowAgent(dqn_agent.DQNAgent):
         priority = self._replay.memory.sum_tree.max_recorded_priority
 
     if not self.eval_mode:
-      self._replay.add(last_observation, action, reward, is_terminal, priority)
+      self._replay.add(last_observation, action, is_random_action, q_values, reward, is_terminal, priority)
 
 
 def project_distribution(supports, weights, target_support,

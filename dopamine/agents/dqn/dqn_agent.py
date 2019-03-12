@@ -22,6 +22,7 @@ import collections
 import math
 import os
 import random
+import cv2
 
 
 
@@ -159,7 +160,7 @@ class DQNAgent(object):
     tf.logging.info('\t optimizer: %s', optimizer)
 
     self.num_actions = num_actions
-    self.observation_shape = tuple(observation_shape)
+    self.observation_shape = tuple(observation_shape) + (3,)
     self.observation_dtype = observation_dtype
     self.stack_size = stack_size
     self.network = network
@@ -221,6 +222,8 @@ class DQNAgent(object):
     Returns:
       net: _network_type object containing the tensors output by the network.
     """
+    # print('424242 state dqn')
+    # print(state)
     return self.network(self.num_actions, self._get_network_type(), state)
 
   def _build_networks(self):
@@ -340,7 +343,7 @@ class DQNAgent(object):
     if not self.eval_mode:
       self._train_step()
 
-    self.action = self._select_action()
+    self.action, self.is_random_action, self.q_values = self._select_action_with_q_values()
     return self.action
 
   def step(self, reward, observation):
@@ -360,10 +363,16 @@ class DQNAgent(object):
     self._record_observation(observation)
 
     if not self.eval_mode:
-      self._store_transition(self._last_observation, self.action, reward, False)
+      self._store_transition(
+        self._last_observation,
+        self.action,
+        self.is_random_action,
+        self.q_values,
+        reward,
+        False)
       self._train_step()
 
-    self.action = self._select_action()
+    self.action, self.is_random_action, self.q_values = self._select_action_with_q_values()
     return self.action
 
   def end_episode(self, reward):
@@ -376,7 +385,41 @@ class DQNAgent(object):
       reward: float, the last reward from the environment.
     """
     if not self.eval_mode:
-      self._store_transition(self._observation, self.action, reward, True)
+      self._store_transition(
+        self._observation,
+        self.action,
+        self.is_random_action,
+        self.q_values,
+        reward,
+        True)
+
+  def _select_action_with_q_values(self):
+    """Select an action from the set of available actions.
+
+    Chooses an action randomly with probability self._calculate_epsilon(), and
+    otherwise acts greedily according to the current Q-value estimates.
+
+    Returns:
+       int, the selected action.
+       int, whether current action was randomized
+       array of floats, Q values
+    """
+    if self.eval_mode:
+      epsilon = self.epsilon_eval
+    else:
+      epsilon = self.epsilon_fn(
+          self.epsilon_decay_period,
+          self.training_steps,
+          self.min_replay_history,
+          self.epsilon_train)
+
+    q_values = self._sess.run(self._net_outputs.q_values, {self.state_ph: self.state})[0]
+    if random.random() <= epsilon:
+      # Choose a random action with probability epsilon.
+      return random.randint(0, self.num_actions - 1), 1, q_values
+    else:
+      # Choose the action with highest Q-value at the current state.
+      return np.argmax(q_values), 0, q_values
 
   def _select_action(self):
     """Select an action from the set of available actions.
@@ -444,7 +487,7 @@ class DQNAgent(object):
     self.state = np.roll(self.state, -1, axis=-1)
     self.state[0, ..., -1] = self._observation
 
-  def _store_transition(self, last_observation, action, reward, is_terminal):
+  def _store_transition(self, last_observation, action, is_random_action, q_values, reward, is_terminal):
     """Stores an experienced transition.
 
     Executes a tf session and executes replay buffer ops in order to store the
@@ -460,7 +503,7 @@ class DQNAgent(object):
       reward: float, the reward.
       is_terminal: bool, indicating if the current state is a terminal state.
     """
-    self._replay.add(last_observation, action, reward, is_terminal)
+    self._replay.add(last_observation, action, is_random_action, q_values, reward, is_terminal)
 
   def _reset_state(self):
     """Resets the agent state by filling it with zeros."""
