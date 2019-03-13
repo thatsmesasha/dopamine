@@ -1,8 +1,10 @@
 # Hyperparameters follow Hessel et al. (2018).
 import dopamine.agents.rainbow.rainbow_agent
+import dopamine.agents.dqn.dqn_agent
 import dopamine.discrete_domains.unity_lib
 import dopamine.discrete_domains.run_experiment
 import dopamine.replay_memory.prioritized_replay_buffer
+import dopamine.replay_memory.circular_replay_buffer
 import gin.tf.external_configurables
 
 RainbowAgent.num_atoms = 51
@@ -25,6 +27,7 @@ tf.train.AdamOptimizer.epsilon = 0.00015
 
 create_otc_environment.environment_path = '../ObstacleTower/obstacletower'
 create_agent.agent_name = 'rainbow'
+create_agent.num_actions = 3
 Runner.create_environment_fn = @unity_lib.create_otc_environment
 Runner.num_iterations = 200
 Runner.training_steps = 2000  # agent steps
@@ -33,3 +36,4 @@ Runner.max_steps_per_episode = 5000  # agent steps
 
 WrappedPrioritizedReplayBuffer.replay_capacity = 5000
 WrappedPrioritizedReplayBuffer.batch_size = 32
+OutOfGraphReplayBuffer.num_actions = 3

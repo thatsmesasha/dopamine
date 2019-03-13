@@ -52,7 +52,7 @@ def load_gin_configs(gin_files, gin_bindings):
 
 @gin.configurable
 def create_agent(sess, environment, agent_name=None, summary_writer=None,
-                 debug_mode=False):
+                 debug_mode=False, num_actions=4):
   """Creates an agent.
 
   Args:
@@ -79,7 +79,7 @@ def create_agent(sess, environment, agent_name=None, summary_writer=None,
                               summary_writer=summary_writer)
   elif agent_name == 'rainbow':
     return rainbow_agent.RainbowAgent(
-        sess, num_actions=4,
+        sess, num_actions=num_actions,
         summary_writer=summary_writer)
   elif agent_name == 'implicit_quantile':
     return implicit_quantile_agent.ImplicitQuantileAgent(
@@ -183,6 +183,8 @@ class Runner(object):
     self._summary_writer = tf.summary.FileWriter(self._base_dir)
 
     self._environment = create_environment_fn()
+    print('424242 self._environment')
+    print(self._environment)
     # Set up a session and initialize variables.
     self._sess = tf.Session('',
                             config=tf.ConfigProto(allow_soft_placement=True))
@@ -281,7 +283,6 @@ class Runner(object):
     is_terminal = False
 
     # Keep interacting until we reach a terminal state.
-    print('Starting episode...')
     while True:
       sys.stdout.write('\rStep: {}'.format(step_number))
       sys.stdout.flush()
@@ -305,7 +306,7 @@ class Runner(object):
         action = self._agent.begin_episode(observation)
       else:
         action = self._agent.step(reward, observation)
-    print('\nEnded episode')
+    print('Ended episode')
 
     self._end_episode(reward)
 

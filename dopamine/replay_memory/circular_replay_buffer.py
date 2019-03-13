@@ -77,7 +77,7 @@ def invalid_range(cursor, replay_capacity, stack_size, update_horizon):
       [(cursor - update_horizon + i) % replay_capacity
        for i in range(stack_size + update_horizon)])
 
-
+@gin.configurable
 class OutOfGraphReplayBuffer(object):
   """A simple out-of-graph Replay Buffer.
 
@@ -109,7 +109,8 @@ class OutOfGraphReplayBuffer(object):
                action_shape=(),
                action_dtype=np.int32,
                reward_shape=(),
-               reward_dtype=np.float32):
+               reward_dtype=np.float32,
+               num_actions=None):
     """Initializes OutOfGraphReplayBuffer.
 
     Args:
@@ -151,6 +152,8 @@ class OutOfGraphReplayBuffer(object):
     tf.logging.info('\t batch_size: %d', batch_size)
     tf.logging.info('\t update_horizon: %d', update_horizon)
     tf.logging.info('\t gamma: %f', gamma)
+
+    self._num_actions = num_actions
 
     self._action_shape = action_shape
     self._action_dtype = action_dtype
@@ -212,7 +215,7 @@ class OutOfGraphReplayBuffer(object):
                       self._observation_dtype),
         ReplayElement('action', self._action_shape, self._action_dtype),
         ReplayElement('is_random_action', (), np.uint8),
-        ReplayElement('q_values', (4,), np.float32),
+        ReplayElement('q_values', (self._num_actions,), np.float32),
         ReplayElement('reward', self._reward_shape, self._reward_dtype),
         ReplayElement('terminal', (), np.uint8)
     ]
