@@ -306,7 +306,8 @@ class Runner(object):
         action = self._agent.begin_episode(observation)
       else:
         action = self._agent.step(reward, observation)
-    print('Ended episode')
+    sys.stdout.write('\r')
+    sys.stdout.flush()
 
     self._end_episode(reward)
 
