@@ -212,7 +212,7 @@ class OutOfGraphReplayBuffer(object):
                       self._observation_dtype),
         ReplayElement('action', self._action_shape, self._action_dtype),
         ReplayElement('is_random_action', (), np.uint8),
-        ReplayElement('q_values', (54,), np.float32),
+        ReplayElement('q_values', (4,), np.float32),
         ReplayElement('reward', self._reward_shape, self._reward_dtype),
         ReplayElement('terminal', (), np.uint8)
     ]
