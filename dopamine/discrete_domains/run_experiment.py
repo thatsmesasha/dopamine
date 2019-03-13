@@ -21,6 +21,7 @@ from __future__ import print_function
 import os
 import sys
 import time
+import datetime
 
 from dopamine.agents.dqn import dqn_agent
 from dopamine.agents.implicit_quantile import implicit_quantile_agent
@@ -344,7 +345,8 @@ class Runner(object):
       num_episodes += 1
       # We use sys.stdout.write instead of tf.logging so as to flush frequently
       # without generating a line break.
-      print('Steps executed: {} '.format(step_count) +
+      print('{} '.format(datetime.datetime.now()) +
+            'Steps executed: {} '.format(step_count) +
             'Episode length: {} '.format(episode_length) +
             'Return: {}'.format(episode_return))
     return step_count, sum_returns, num_episodes
