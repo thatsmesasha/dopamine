@@ -37,3 +37,5 @@ Runner.max_steps_per_episode = 5000  # agent steps
 WrappedPrioritizedReplayBuffer.replay_capacity = 5000
 WrappedPrioritizedReplayBuffer.batch_size = 32
 OutOfGraphReplayBuffer.num_actions = 3
+
+DQNAgent.max_tf_checkpoints_to_keep=100
