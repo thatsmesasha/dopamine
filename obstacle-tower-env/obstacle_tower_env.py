@@ -65,7 +65,7 @@ class ObstacleTowerEnv(gym.Env):
         self._flattener = None
         self._seed = None
         self._floor = None
-        self.realtime_mode = True
+        self.realtime_mode = realtime_mode
         self.game_over = False  # Hidden flag used by Atari environments to determine if the game is over
         self.retro = retro
 
